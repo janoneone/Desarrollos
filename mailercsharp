@@ -1,0 +1,454 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Net.Mail;
+using System.IO;
+using System.Net.Sockets;
+using System.Collections;
+using System.Xml;
+
+namespace Panel.Dominios
+{
+
+    public class Mailer
+    {
+        private string _strSmtpServer = "127.0.0.1";
+        private int _iPort = 25;
+
+        MailMessage _objMailMessage = null;
+        SmtpClient smtpClient = null;
+
+
+        /// <summary>
+        /// Mailer using default SMTP Server (localhost) and Port (25)
+        /// </summary>
+        public Mailer()
+        {
+            _objMailMessage = new MailMessage();
+            smtpClient = new SmtpClient();
+
+            smtpClient.Host = _strSmtpServer;
+            smtpClient.Port = _iPort;
+            smtpClient.UseDefaultCredentials = true;
+        }
+
+
+        /// <summary>
+        /// Mailer using user defined SMTP Server and default port
+        /// </summary>
+        /// <param name="strSmtpServer">SMTP Server</param>
+        public Mailer(string strSmtpServer)
+        {
+            _strSmtpServer = strSmtpServer;
+
+            _objMailMessage = new MailMessage();
+            smtpClient = new SmtpClient();
+
+            smtpClient.Host = _strSmtpServer;
+            smtpClient.Port = _iPort;
+            smtpClient.EnableSsl = true;
+            smtpClient.UseDefaultCredentials = true;
+        }
+
+
+        /// <summary>
+        /// Mailer using user defined SMTP Server and Port
+        /// </summary>
+        /// <param name="strSmtpServer">SMTP Server</param>
+        /// <param name="iPort">Port</param>
+        public Mailer(string strSmtpServer, int iPort)
+        {
+            _strSmtpServer = strSmtpServer;
+            _iPort = iPort;
+
+            _objMailMessage = new MailMessage();
+            smtpClient = new SmtpClient();
+
+            smtpClient.Host = _strSmtpServer;
+            smtpClient.Port = _iPort;
+            smtpClient.EnableSsl = true;
+            smtpClient.UseDefaultCredentials = true;
+        }
+
+
+        /// <summary>
+        /// Authenticate client at the server
+        /// </summary>
+        /// <param name="strUsername">Username</param>
+        /// <param name="strPassword">Password</param>
+        public void Authenticate(string strUsername, string strPassword)
+        {
+            System.Net.NetworkCredential SMTPUserInfo = new System.Net.NetworkCredential(strUsername, strPassword);
+            smtpClient.UseDefaultCredentials = false;
+            smtpClient.Credentials = SMTPUserInfo;
+        }
+
+
+
+        /// <summary>
+        /// Send a plain text e-mail
+        /// </summary>
+        /// <param name="To">To</param>
+        /// <param name="From">From</param>
+        /// <param name="Subject">Subject</param>
+        /// <param name="Body">Body</param>
+        /// <param name="CC">CC</param>
+        /// <param name="BCC">BCC</param>
+        /// <param name="strErrorDesc">Error description on failure</param>
+        /// <returns>true is send is succesful, false if not</returns>
+        public bool SendPlain(string To, string From, string Subject, string Body, string CC, string BCC, ref string strErrorDesc)
+        {
+            try
+            {
+                _objMailMessage.To.Add(To.Trim());
+                _objMailMessage.From = new MailAddress(From.Trim());
+
+                if (CC != null && CC.Trim().Length != 0)
+                {
+                    string[] CCList = CC.Split(',');
+                    for (int i = 0; i < CCList.Length; i++)
+                    {
+                        _objMailMessage.CC.Add(CCList[i]);
+                    }
+                }
+
+                if (BCC != null && BCC.Trim().Length != 0)
+                {
+                    string[] BCCList = BCC.Split(',');
+                    for (int i = 0; i < BCCList.Length; i++)
+                    {
+                        _objMailMessage.Bcc.Add(BCCList[i]);
+                    }
+                }
+
+                _objMailMessage.Subject = Subject.Trim();
+                _objMailMessage.IsBodyHtml = false;
+                _objMailMessage.Body = Body;
+
+                smtpClient.Send(_objMailMessage);
+            }
+            catch (Exception e)
+            {
+                strErrorDesc = e.Message;
+                return false;
+            }
+            return true;
+        }
+
+
+        /// <summary>
+        /// Send a HTML text e-mail
+        /// </summary>
+        /// <param name="To">To</param>
+        /// <param name="From">From</param>
+        /// <param name="Subject">Subject</param>
+        /// <param name="Body">Body</param>
+        /// <param name="CC">CC</param>
+        /// <param name="BCC">BCC</param>
+        /// <param name="strErrorDesc">Error description on failure</param>
+        /// <returns>true is send is succesful, false if not</returns>
+        //public bool SendHtml(string To, string From, string Subject, string Body, string CC, string BCC, ref string strErrorDesc)
+        //{
+        //    try
+        //    {
+        //        _objMailMessage.To.Add(To.Trim());
+        //        _objMailMessage.From = new MailAddress(From.Trim());
+
+        //        if (CC != null && CC.Trim().Length != 0)
+        //        {
+        //            string[] CCList = CC.Split(',');
+        //            for (int i = 0; i < CCList.Length; i++)
+        //            {
+        //                _objMailMessage.CC.Add(CCList[i]);
+        //            }
+        //        }
+
+        //        if (BCC != null && BCC.Trim().Length != 0)
+        //        {
+        //            string[] BCCList = BCC.Split(',');
+        //            for (int i = 0; i < BCCList.Length; i++)
+        //            {
+        //                _objMailMessage.Bcc.Add(BCCList[i]);
+        //            }
+        //        }
+
+        //        _objMailMessage.Subject = Subject.Trim();
+        //        _objMailMessage.IsBodyHtml = true;
+        //        _objMailMessage.Body = Body;
+
+        //        smtpClient.Send(_objMailMessage);
+
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        strErrorDesc = e.Message;
+        //        LogError(e.Message);
+
+        //        // Asigna el mensaje de error a strErrorDesc
+        //        strErrorDesc = e.Message;
+        //        return false;
+        //    }
+        //    return true;
+        //}
+
+
+        public bool SendHtml(string To, string From, string Subject, string Body, string CC, string BCC, ref string strErrorDesc)
+        {
+            // Declara una variable local para capturar el valor de strErrorDesc
+            string errorDescription = strErrorDesc;
+
+            try
+            {
+                var _objMailMessage = new MailMessage
+                {
+                    Subject = Subject.Trim(),
+                    IsBodyHtml = true,
+                    Body = Body
+                };
+
+                _objMailMessage.To.Add(To.Trim());
+                _objMailMessage.From = new MailAddress(From.Trim());
+
+                if (!string.IsNullOrEmpty(CC))
+                {
+                    string[] CCList = CC.Split(',');
+                    foreach (string cc in CCList)
+                    {
+                        _objMailMessage.CC.Add(cc.Trim());
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(BCC))
+                {
+                    string[] BCCList = BCC.Split(',');
+                    foreach (string bcc in BCCList)
+                    {
+                        _objMailMessage.Bcc.Add(bcc.Trim());
+                    }
+                }
+
+                // Configurar el manejador de eventos para el evento SendCompleted
+                smtpClient.SendCompleted += (sender, e) =>
+                {
+                    if (e.Cancelled || e.Error != null)
+                    {
+                        // El envío se canceló o se produjo un error
+                        errorDescription = e.Error != null ? e.Error.Message : "Envío cancelado.";
+                    }
+                    else
+                    {
+                        // El envío se completó exitosamente
+                    }
+
+                    // Liberar los recursos del objeto MailMessage
+                    _objMailMessage.Dispose();
+                };
+
+                // Enviar el correo de manera asincrónica
+                smtpClient.SendAsync(_objMailMessage, null);
+
+                // No es necesario esperar aquí, ya que el evento SendCompleted manejará el resultado
+
+                // Asignar el valor actualizado de errorDescription a strErrorDesc
+                strErrorDesc = errorDescription;
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                // Captura la excepción y guarda el mensaje de error en un archivo de registro
+                LogError(e.ToString());
+
+                // Asigna el mensaje de error a strErrorDesc
+                strErrorDesc = e.Message;
+                return false;
+            }
+        }
+
+        private void LogError(string errorMessage)
+        {
+            try
+            {
+                // Ruta del directorio para el archivo de registro de errores
+                string logDirectoryPath = "C:\\Logs";
+
+                // Verificar si el directorio existe; si no, crearlo
+                if (!Directory.Exists(logDirectoryPath))
+                {
+                    Directory.CreateDirectory(logDirectoryPath);
+                }
+
+                // Nombre del archivo de registro de errores
+                string logFilePath = Path.Combine(logDirectoryPath, "ErrorLog.txt");
+
+                // Obtener la fecha y hora actual para el registro
+                string timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+                // Formatear el mensaje de error
+                string logMessage = $"{timeStamp} - Error: {errorMessage}";
+
+                // Escribir el mensaje en el archivo de registro de errores
+                File.AppendAllText(logFilePath, logMessage + Environment.NewLine);
+            }
+            catch (Exception ex)
+            {
+                // Manejar cualquier excepción que pueda ocurrir al escribir en el archivo de registro
+                Console.WriteLine($"Error al escribir en el archivo de registro: {ex.Message}");
+            }
+        }
+
+
+        /// <summary>
+        /// Sends a plain text e-mail with attachments from a list of files
+        /// </summary>
+        /// <param name="To">To</param>
+        /// <param name="From">From</param>
+        /// <param name="Subject">Subject</param>
+        /// <param name="Body">Body</param>
+        /// <param name="CC">CC</param>
+        /// <param name="BCC">BCC</param>
+        /// <param name="strFilePath">List of file names with full path</param>
+        /// <param name="strErrorDesc">Error Description on failure</param>
+        /// <returns>true if send is successful, false if not</returns>
+        public bool SendPlainAttachment(string To, string From, string Subject, string Body, string CC, string BCC, string[] strFilePath, ref string strErrorDesc)
+        {
+            for (int i = 0; i < strFilePath.Length; i++)
+            {
+                if (!System.IO.File.Exists(strFilePath[i]))
+                {
+                    strErrorDesc = "File not found: " + strFilePath[i];
+                    return false;
+                }
+            }
+
+            try
+            {
+                _objMailMessage.To.Add(To.Trim());
+                _objMailMessage.From = new MailAddress(From);
+
+                if (CC != null && CC.Trim().Length != 0)
+                {
+                    string[] CCList = CC.Split(',');
+                    for (int i = 0; i < CCList.Length; i++)
+                    {
+                        _objMailMessage.CC.Add(CCList[i]);
+                    }
+                }
+
+                if (BCC != null && BCC.Trim().Length != 0)
+                {
+                    string[] BCCList = BCC.Split(',');
+                    for (int i = 0; i < BCCList.Length; i++)
+                    {
+                        _objMailMessage.Bcc.Add(BCCList[i]);
+                    }
+                }
+
+                _objMailMessage.Subject = Subject.Trim();
+                _objMailMessage.IsBodyHtml = false;
+                _objMailMessage.Body = Body;
+                for (int i = 0; i < strFilePath.Length; i++)
+                {
+                    Attachment maAttach = new Attachment(strFilePath[i]);
+                    _objMailMessage.Attachments.Add(maAttach);
+                }
+
+                smtpClient.Send(_objMailMessage);
+            }
+            catch (Exception e)
+            {
+                strErrorDesc = e.Message;
+                return false;
+            }
+            return true;
+        }
+
+
+
+        /// <summary>
+        /// Sends a plain text e-mail with attachments from a list of files
+        /// </summary>
+        /// <param name="To">To</param>
+        /// <param name="From">From</param>
+        /// <param name="Subject">Subject</param>
+        /// <param name="Body">Body</param>
+        /// <param name="CC">CC</param>
+        /// <param name="BCC">BCC</param>
+        /// <param name="strFilePath">List of file names with full path</param>
+        /// <param name="strErrorDesc">Error Description on failure</param>
+        /// <returns>true if send is successful, false if not</returns>
+        public bool SendHtmlAttachment(string To, string From, string Subject, string Body, string CC, string BCC, List<string> strFilePath, ref string strErrorDesc)
+        {
+            for (int i = 0; i < strFilePath.Count; i++)
+            {
+                if (!System.IO.File.Exists(strFilePath[i]))
+                {
+                    strErrorDesc = "File not found: " + strFilePath[i];
+                    return false;
+                }
+            }
+
+            try
+            {
+                _objMailMessage.To.Add(To.Trim());
+                _objMailMessage.From = new MailAddress(From);
+
+                if (CC != null && CC.Trim().Length != 0)
+                {
+                    string[] CCList = CC.Split(',');
+                    for (int i = 0; i < CCList.Length; i++)
+                    {
+                        _objMailMessage.CC.Add(CCList[i]);
+                    }
+                }
+
+                if (BCC != null && BCC.Trim().Length != 0)
+                {
+                    string[] BCCList = BCC.Split(',');
+                    for (int i = 0; i < BCCList.Length; i++)
+                    {
+                        _objMailMessage.Bcc.Add(BCCList[i]);
+                    }
+                }
+
+                _objMailMessage.Subject = Subject.Trim();
+                _objMailMessage.IsBodyHtml = true;
+                _objMailMessage.Body = Body;
+                for (int i = 0; i < strFilePath.Count; i++)
+                {
+                    Attachment maAttach = new Attachment(strFilePath[i]);
+                    _objMailMessage.Attachments.Add(maAttach);
+                }
+
+                smtpClient.Send(_objMailMessage);
+            }
+            catch (Exception e)
+            {
+                strErrorDesc = e.Message;
+                return false;
+            }
+            return true;
+        }
+
+
+        /// <summary>
+        /// SMTP Server
+        /// </summary>
+        public string SmtpServer
+        {
+            set { _strSmtpServer = value; }
+            get { return _strSmtpServer; }
+        }
+
+
+        /// <summary>
+        /// SMTP Port
+        /// </summary>
+        public int Port
+        {
+            set { _iPort = value; }
+            get { return _iPort; }
+        }
+    }
+}
