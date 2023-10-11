@@ -1,0 +1,44 @@
+ON PRESUBMIT JS ENVIO EMAIL
+$.each(data.data, function (key, values) {
+                    if (data.data[key]["WhitEmail"] === "True") {
+                        var lang = data.data[key]["langshort"];
+                        var HasTrustee = data.data[key]["HasTrustee"];
+                        var paisId = data.data[key]["pais"];
+                        var tmDomainOpt = data.data[key]["TMDomainOpt"];
+                        var domain = data.data[key]["Domain"];
+                        var UserEmail = data.data[key]["UserEmail"];
+                        var IdDomain = data.data[key]["IdDomain"];
+
+                        //dataValue = '{lang: "' + lang + '", HasTrustee: "' + HasTrustee + '", paisId: "' + paisId + '", tmDomainOpt: "' + tmDomainOpt + '", domain: "' + domain + '" , UserEmail: "' + UserEmail +'"}';
+                        dataValue = '{IdDomain: "' + IdDomain +'"}';
+                        $.ajax({
+                            type: "POST",
+                            //url: "/Dominios/ManualRegistration.aspx/SendMailManualRegistration",
+                            url: "/Dominios/ManualRegistration.aspx/EnqueueMandril",
+                            data: dataValue,
+                            contentType: 'application/json; charset=utf-8',
+                            dataType: 'json',
+                            success: function (response) {
+                                if (response.d == "ok") {
+
+                                    swalfireAlert(3, "E-mail " + (UserEmail.match(/.*@/)[0].length < 3 ? UserEmail : UserEmail.replace(/(.{1})(.*)(.{1}@.*)/g, '$1' + '*'.repeat(UserEmail.match(/.*@/)[0].length - 3) + '$3')) + "uploaded on Mandril" );
+
+                                } else {
+                                    swalfireAlert(4, "Error " + (UserEmail.match(/.*@/)[0].length < 3 ? UserEmail : UserEmail.replace(/(.{1})(.*)(.{1}@.*)/g, '$1' + '*'.repeat(UserEmail.match(/.*@/)[0].length - 3) + '$3')) + "couldn´t not be loaded into Mandril");
+                                }
+                            },
+                            error: function (e) {
+                                console.log(e);
+      
+                            }
+                        });
+                        var today = new Date();
+                        var date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+
+                        data.data[key]["Last_email"] = date +' - '+ 'Registrado';
+                    }
+                    else {
+                        delete data.data[key]["Last_email"];
+                    }
+
+                });
