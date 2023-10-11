@@ -1,0 +1,109 @@
+//metodo para enviar email debo modificarlo 
+        [WebMethod()]
+        [ScriptMethod()]
+        public static string SendMailManualRegistration(string lang, int HasTrustee, int paisId, int tmDomainOpt, string domain, string UserEmail)
+        {
+            List<correo> emails = null;
+            List<pais> countryName = null;
+            var body = "";
+            var subject = "";
+            var nombrePais = "";
+            using (SqlConnection connection = new SqlConnection(WebConfigurationManager.ConnectionStrings["MarcariaConnectionString"].ConnectionString))
+            {
+                var datos = connection.QueryMultiple("select case '" + lang + "' when 'en' then body_en when 'sp' then body_sp when 'pr' then body_pr when 'fr' then body_fr  end as 'body', case '" + lang + "' when 'en' then subject_en when 'sp' then subject_sp when 'pr' then subject_pr when 'fr' then subject_fr end as 'subject' from email_text_multilanguage Where email_type =2 and serviceType = 0");
+                emails = datos.Read<correo>().ToList();
+                // Ahora, puedes acceder a los resultados como objetos Email
+                foreach (var email in emails)
+                {
+                    body = email.body;
+                    subject = email.subject;
+                }
+
+            } 
+            using (SqlConnection connection = new SqlConnection(WebConfigurationManager.ConnectionStrings["MarcariaConnectionString"].ConnectionString))
+            {
+               var datoIdioma = connection.QueryMultiple("select case '" + lang + "' WHEN 'en' THEN nombre_en WHEN 'sp' THEN nombre WHEN 'pr' THEN nombre_pr WHEN 'fr' THEN nombre_fr end AS 'paisNombre' from paises where id = "+paisId+"");
+
+                countryName = datoIdioma.Read<pais>().ToList();
+                foreach (var x in countryName)
+                {
+                    nombrePais = x.paisNombre;
+                }
+
+            }
+            var cuerpo = body;
+
+
+            if (tmDomainOpt == 2)
+            {
+                // Si TMDomainOpt es igual a "2", elimina todas las instancias de [#SERVICE#]
+                cuerpo = cuerpo.Replace("[#SERVICE#]", "");
+            }
+            else
+            {
+                if (cuerpo.Contains("[#SERVICE#]"))
+                {
+
+                    string[] aryBody = cuerpo.Split(new string[] { "[#SERVICE#]" }, StringSplitOptions.None);
+
+                    cuerpo = aryBody[0] + aryBody[2];
+                }
+            }
+            if (paisId == 77 && HasTrustee == 1)
+            {
+                cuerpo = cuerpo.Replace("[#TRUSTEEAUSTRALIA#]", "");
+            }
+            else
+            {
+                if (cuerpo.Contains("[#TRUSTEEAUSTRALIA#]"))
+                {
+
+                    string[] aryBody = cuerpo.Split(new string[] { "[#TRUSTEEAUSTRALIA#]" }, StringSplitOptions.None);
+
+
+                    cuerpo = aryBody[0] + aryBody[2];
+                }
+            }
+
+            cuerpo = cuerpo.Replace("[COUNTRY]", nombrePais).Replace("[DomainName] ", domain);
+            
+            Console.WriteLine(cuerpo);
+
+            string SmtpServer = WebConfigurationManager.AppSettings["SmtpServer"];
+            string SmtpUsername = WebConfigurationManager.AppSettings["SmtpUsername"];
+            string SmtpPassword = WebConfigurationManager.AppSettings["SmtpPassword"];
+            bool bSend;
+            var enviado = "";
+            UserEmail = "alejandro.castro@marcaria.com";
+            string To = UserEmail;
+            string From = "support@marcaria.com";
+            string Subject = subject;
+            string Body = cuerpo;
+            string CC = "";
+            string BCC = "";
+            string strErrorDesc = "";
+
+            Mailer objMailer = new Mailer(SmtpServer);
+            objMailer.Authenticate(SmtpUsername, SmtpPassword);
+            bSend = objMailer.SendHtml(To, From, Subject, Body, CC, BCC, ref strErrorDesc);
+            if (bSend)
+            {
+                enviado = "ok"; 
+            }
+            else { enviado = "NOK";
+            }
+            return enviado;
+
+        }
+        class correo
+        {
+            public string body { get; set; }
+            public string subject { get; set; }
+
+        }
+        class pais
+        {
+            public string paisNombre { get; set; }
+
+
+        }
